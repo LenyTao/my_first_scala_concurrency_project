@@ -15,51 +15,51 @@ import java.nio.file.{Files, Path}
       readStrings(file.toFile)
   }
 
-  object AvgGamlet extends App with ReaderGamlet {
-    val firstHalfThread = new MyThread
-    val secondHalfThread = new MyThread2
-    firstHalfThread.start();
-    secondHalfThread.start();
-    firstHalfThread.join()
-    secondHalfThread.join()
-    val result = math.round(((firstHalfThread.avgFirstHalf + secondHalfThread.avgSecondHalf) / 2) * 100.0) / 100.0
-    println("Average length of English words " + result + " letters")
-    result
-  }
 
-  class MyThread extends Thread with ReaderGamlet {
-    var wordCount = 0
-    var sumWord = 0
-    var avgFirstHalf: Double = 0.0
+object AvgGamlet extends App with ReaderGamlet {
+  val firstHalfThread = new MyThread
+  val secondHalfThread = new MyThread2
+  firstHalfThread.start();
+  secondHalfThread.start();
+  firstHalfThread.join()
+  secondHalfThread.join()
+  val result = math.round(((firstHalfThread.avgFirstHalf + secondHalfThread.avgSecondHalf) / 2) * 100.0) / 100.0
+  println("Average length of English words " + result + " letters")
+  result
+}
 
-    override def run() = {
-      val firstHalf = loadStrings().dropRight(loadStrings().length / 2)
-      for (word <- firstHalf) {
-        if (word.nonEmpty && word(0).toInt != 13) {
-          println("Hello, I am First Thread, working with the word: " + word.trim)
-          wordCount += 1
-          sumWord = sumWord + word.length
-        }
+class MyThread extends Thread with ReaderGamlet {
+  var wordCount = 0
+  var sumWord = 0
+  var avgFirstHalf: Double = 0.0
+
+  override def run() = {
+    val firstHalf = loadStrings().dropRight(loadStrings().length / 2)
+    for (word <- firstHalf) {
+      if (word.nonEmpty && word(0).toInt != 13) {
+        println("Hello, I am First Thread, working with the word: " + word.trim)
+        wordCount += 1
+        sumWord = sumWord + word.length
       }
-      avgFirstHalf = sumWord.toDouble / wordCount.toDouble
     }
+    avgFirstHalf = sumWord.toDouble / wordCount.toDouble
   }
+}
 
-  class MyThread2 extends Thread with ReaderGamlet {
-    var wordCount = 0
-    var sumWord = 0
-    var avgSecondHalf: Double = 0.0
+class MyThread2 extends Thread with ReaderGamlet {
+  var wordCount = 0
+  var sumWord = 0
+  var avgSecondHalf: Double = 0.0
 
-    override def run() = {
-      val secondHalf = loadStrings().drop(loadStrings().length / 2)
-      for (word <- secondHalf) {
-        if (word.nonEmpty && word(0).toInt != 13) {
-          println("Hello, I am Second Thread, working with the word: " + word.trim)
-          wordCount += 1
-          sumWord = sumWord + word.length
-        }
+  override def run() = {
+    val secondHalf = loadStrings().drop(loadStrings().length / 2)
+    for (word <- secondHalf) {
+      if (word.nonEmpty && word(0).toInt != 13) {
+        println("Hello, I am Second Thread, working with the word: " + word.trim)
+        wordCount += 1
+        sumWord = sumWord + word.length
       }
-      avgSecondHalf = sumWord.toDouble / wordCount.toDouble
     }
+    avgSecondHalf = sumWord.toDouble / wordCount.toDouble
   }
-
+}
