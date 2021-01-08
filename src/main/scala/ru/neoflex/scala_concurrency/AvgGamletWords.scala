@@ -3,7 +3,6 @@ package ru.neoflex.scala_concurrency
 import java.io.File
 import java.nio.file.{Files, Path}
 
-
   trait ReaderGamlet {
     val file = Path.of("./textGamlet/Gamlet.txt")
 
@@ -14,7 +13,6 @@ import java.nio.file.{Files, Path}
     def loadStrings(): Array[String] =
       readStrings(file.toFile)
   }
-
 
 object AvgGamlet extends App with ReaderGamlet {
   val firstHalfThread = new MyThread
