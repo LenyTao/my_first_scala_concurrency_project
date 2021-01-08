@@ -3,16 +3,16 @@ package ru.neoflex.scala_concurrency
 import java.io.File
 import java.nio.file.{Files, Path}
 
-  trait ReaderGamlet {
-    val file = Path.of("./textGamlet/Gamlet.txt")
+trait ReaderGamlet {
+  val file = Path.of("./textGamlet/Gamlet.txt")
 
-    def readStrings(f: File): Array[String] = {
-      Files.readString(f.toPath).replaceAll("\\p{Punct}", "").replaceAll("\n", " ").split(" ")
-    }
-
-    def loadStrings(): Array[String] =
-      readStrings(file.toFile)
+  def readStrings(f: File): Array[String] = {
+    Files.readString(f.toPath).replaceAll("\\p{Punct}", "").replaceAll("\n", " ").split(" ")
   }
+
+  def loadStrings(): Array[String] =
+    readStrings(file.toFile)
+}
 
 object AvgGamlet extends App with ReaderGamlet {
   val firstHalfThread = new MyThread
@@ -22,7 +22,7 @@ object AvgGamlet extends App with ReaderGamlet {
   firstHalfThread.join()
   secondHalfThread.join()
   val result = math.round(((firstHalfThread.avgFirstHalf + secondHalfThread.avgSecondHalf) / 2) * 100.0) / 100.0
-  println("Average length of English words " + result + " letters")
+  println("Average length of English words: " + result + " letters")
   result
 }
 
