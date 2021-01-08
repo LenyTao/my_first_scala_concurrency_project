@@ -62,4 +62,3 @@ import java.nio.file.{Files, Path}
       avgSecondHalf = sumWord.toDouble / wordCount.toDouble
     }
   }
-
