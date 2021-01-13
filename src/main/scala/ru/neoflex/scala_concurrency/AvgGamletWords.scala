@@ -4,7 +4,6 @@ import java.nio.file.{Files, Path}
 
 
 object AvgGamletWords extends App {
-  var a = true
   val bookSacrifice: Path = Path.of("./textGamlet/Gamlet.txt")
   val arrayOnlyWordsFromTheBook =
     Files
