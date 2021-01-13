@@ -49,7 +49,7 @@ object AvgGamletWords extends App {
   class AvgGamlet {
 
     @volatile private var wordCount: Int = 0
-    @volatile private var sumWord: Int = 0
+    @volatile private var sumWords: Int = 0
 
     def counterWord(): Unit = {
       wordCount += 1
@@ -60,11 +60,11 @@ object AvgGamletWords extends App {
     }
 
     def sumWords(wordLength: Int): Unit = {
-      sumWord += wordLength
+      sumWords += wordLength
     }
 
     def getSumWords(): Int = {
-      sumWord
+      sumWords
     }
   }
 }
