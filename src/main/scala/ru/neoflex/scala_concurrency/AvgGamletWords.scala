@@ -4,75 +4,74 @@ import java.nio.file.{Files, Path}
 
 
 object AvgGamletWords extends App {
-  val fileForReader: Path = Path.of("./textGamlet/Gamlet.txt")
-
-  def readWords(): Array[String] = {
+  var a = true
+  val bookSacrifice: Path = Path.of("./textGamlet/Gamlet.txt")
+  val arrayOnlyWordsFromTheBook =
     Files
-      .readString(fileForReader)
-      .replaceAll("\\p{Punct}", "")
-      .replaceAll("\n", " ")
+      .readString(bookSacrifice)
+      .replaceAll("[^a-zA-Z\\s]", "")
       .split(" ")
-      .filter(_.nonEmpty)
-      .filter(_ (0).toInt != 13)
-  }
+      .filter(_ != "")
 
-  val clearGamlet = readWords()
   val avg = new AvgGamlet
-  ThreadsReadingPartsOfBook(5)
 
-  val result: Double = avg.getSumWord() / avg.getWordCount()
+  countsSumOfWordsParts(5)
+
+  val result: Double = avg.getSumWords().toDouble / avg.getWordCount().toDouble
+
   println("Average length of English words: " + String.format("%.1f", result) + " letters")
+  println(avg.getSumWords())
+  println(result)
   result
 
 
-  def ThreadsReadingPartsOfBook(numberOfParts: Int) {
+  def countsSumOfWordsParts(numberOfParts: Int) = {
     val arrayThreads: Array[Thread] = new Array[Thread](numberOfParts)
-    val partBookForThread: Array[String] = Array.fill(clearGamlet.length / numberOfParts)("")
+    val partBookForThread: Array[String] = new Array[String](arrayOnlyWordsFromTheBook.length / numberOfParts)
+    avg.sumWords(arrayOnlyWordsFromTheBook
+      .drop(arrayOnlyWordsFromTheBook.length - arrayOnlyWordsFromTheBook.length % numberOfParts)
+      .map(x => x.length)
+      .sum)
     for (numberThreadWorkingWithPartText <- 0 until numberOfParts) {
-      Array.copy(clearGamlet, numberThreadWorkingWithPartText * partBookForThread.length, partBookForThread, 0, partBookForThread.length)
-
-       arrayThreads.update(
-         numberThreadWorkingWithPartText, new Thread(s"Thread # $numberThreadWorkingWithPartText") {
-           override def run(): Unit = {
-             for (word <- partBookForThread) {
-               avg.inkrementWord()
-               avg.sumWord(word.length)
-             }
-           }
-         }
-       )
+      Array.copy(arrayOnlyWordsFromTheBook, numberThreadWorkingWithPartText * partBookForThread.length, partBookForThread, 0, partBookForThread.length)
+      arrayThreads.update(
+        numberThreadWorkingWithPartText, new Thread(s"Thread # $numberThreadWorkingWithPartText") {
+          override def run(): Unit = {
+            for (word <- partBookForThread) {
+              avg.counterWord()
+              avg.sumWords(word.length)
+            }
+          }
+        }
+      )
       arrayThreads(numberThreadWorkingWithPartText).start()
-            Thread.sleep(10)
+      arrayThreads(numberThreadWorkingWithPartText).join()
     }
     for (numThread <- 0 until numberOfParts) {
       arrayThreads(numThread).join()
     }
-    val tailOfBook: Int = clearGamlet.length - (numberOfParts * partBookForThread.length)
-    if (tailOfBook != 0) {
-      clearGamlet.drop(clearGamlet.length - tailOfBook).foreach(x => avg.inkrementWord())
-      clearGamlet.drop(clearGamlet.length - tailOfBook).foreach(x => avg.sumWord(x.length))
-    }
   }
 
   class AvgGamlet {
+
     @volatile private var wordCount: Int = 0
     @volatile private var sumWord: Int = 0
+    var a = true
 
-    def inkrementWord(): Int = {
+    def counterWord(): Unit = {
       wordCount += 1
-      wordCount
     }
 
     def getWordCount(): Int = {
       wordCount
     }
 
-    def sumWord(wordLength: Int): Int = {
+    def sumWords(wordLength: Int): Unit = {
       sumWord += wordLength
-      sumWord
     }
 
-    def getSumWord(): Double = {
+
+    def getSumWords(): Int = {
       sumWord
     }
   }
