@@ -1,53 +1,64 @@
 package ru.neoflex.scala_concurrency
 
 import java.nio.file.{Files, Path}
+import java.util.concurrent._
 
 
 object AvgGamletWords extends App {
+  val semaphoreForControlTreatmentPartBook = new Semaphore(1)
   val bookSacrifice: Path = Path.of("./textGamlet/Gamlet.txt")
-  val arrayOnlyWordsFromTheBook =
-    Files
-      .readString(bookSacrifice)
-      .replaceAll("[^a-zA-Z\\s]", "")
-      .split(" ")
-      .filter(_ != "")
-
+  val arrayOnlyWordsFromTheBook = Files
+    .readString(bookSacrifice)
+    .replaceAll("[^a-zA-Z\\s]", "").replaceAll("[\\r\\n]", "")
+    .split(" ")
+    .filter(_ != "")
   val avg = new AvgGamlet
-
   countsSumOfWordsParts(5)
-
   val result: Double = avg.getSumWords().toDouble / avg.getWordCount().toDouble
-
   println("Average length of English words: " + String.format("%.1f", result) + " letters")
   result
 
 
   def countsSumOfWordsParts(numberOfParts: Int) = {
+
     val arrayThreads: Array[Thread] = new Array[Thread](numberOfParts)
-    val partBookForThread: Array[String] = new Array[String](arrayOnlyWordsFromTheBook.length / numberOfParts)
-    avg.sumWords(arrayOnlyWordsFromTheBook
-      .drop(arrayOnlyWordsFromTheBook.length - arrayOnlyWordsFromTheBook.length % numberOfParts)
-      .map(x => x.length)
-      .sum)
+    @volatile var partBookForThread: Array[String] = new Array[String](arrayOnlyWordsFromTheBook.length / numberOfParts)
+
     for (numberThreadWorkingWithPartText <- 0 until numberOfParts) {
-      Array.copy(arrayOnlyWordsFromTheBook, numberThreadWorkingWithPartText * partBookForThread.length, partBookForThread, 0, partBookForThread.length)
+
+      if (numberThreadWorkingWithPartText != numberOfParts - 1) {
+        Array.copy(arrayOnlyWordsFromTheBook, numberThreadWorkingWithPartText * partBookForThread.length, partBookForThread, 0, partBookForThread.length)
+      }
+
+      else if (arrayOnlyWordsFromTheBook.length % numberOfParts != 0) {
+        arrayThreads.dropRight(1).foreach(x => x.join())
+        partBookForThread = arrayOnlyWordsFromTheBook.drop(arrayOnlyWordsFromTheBook.length - partBookForThread.length - (arrayOnlyWordsFromTheBook.length % numberOfParts))
+      }
+      else {
+        arrayThreads.dropRight(1).foreach(x => x.join())
+        Array.copy(arrayOnlyWordsFromTheBook, numberThreadWorkingWithPartText * partBookForThread.length, partBookForThread, 0, partBookForThread.length)
+      }
+
       arrayThreads.update(
         numberThreadWorkingWithPartText, new Thread(s"Thread # $numberThreadWorkingWithPartText") {
+
           override def run(): Unit = {
+            semaphoreForControlTreatmentPartBook.acquire()
             for (word <- partBookForThread) {
-              avg.counterWord()
               avg.sumWords(word.length)
+              avg.counterWord()
             }
+            semaphoreForControlTreatmentPartBook.release()
           }
         }
       )
       arrayThreads(numberThreadWorkingWithPartText).start()
-      arrayThreads(numberThreadWorkingWithPartText).join()
+      Thread.sleep(10)
     }
+    arrayThreads(arrayThreads.length - 1).join()
   }
 
   class AvgGamlet {
-
     @volatile private var wordCount: Int = 0
     @volatile private var sumWords: Int = 0
 
