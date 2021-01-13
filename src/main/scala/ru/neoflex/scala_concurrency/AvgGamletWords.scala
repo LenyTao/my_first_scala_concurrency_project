@@ -19,8 +19,6 @@ object AvgGamletWords extends App {
   val result: Double = avg.getSumWords().toDouble / avg.getWordCount().toDouble
 
   println("Average length of English words: " + String.format("%.1f", result) + " letters")
-  println(avg.getSumWords())
-  println(result)
   result
 
 
@@ -45,9 +43,6 @@ object AvgGamletWords extends App {
       )
       arrayThreads(numberThreadWorkingWithPartText).start()
       arrayThreads(numberThreadWorkingWithPartText).join()
-    }
-    for (numThread <- 0 until numberOfParts) {
-      arrayThreads(numThread).join()
     }
   }
 
