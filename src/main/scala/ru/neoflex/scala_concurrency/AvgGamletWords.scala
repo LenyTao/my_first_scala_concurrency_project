@@ -5,13 +5,16 @@ import java.util.concurrent._
 
 
 object AvgGamletWords extends App {
+
   val semaphoreForControlTreatmentPartBook = new Semaphore(1)
   val bookSacrifice: Path = Path.of("./textGamlet/Gamlet.txt")
   val arrayOnlyWordsFromTheBook = Files
     .readString(bookSacrifice)
-    .replaceAll("[^a-zA-Z\\s]", "").replaceAll("[\\r\\n]", "")
+    .replaceAll("[^a-zA-Z\\s]", "")
+    .replaceAll("[\\r\\n\\a\\t\\v\\f\\e]", "")
     .split(" ")
     .filter(_ != "")
+
   val avg = new AvgGamlet
   countsSumOfWordsParts(5)
   val result: Double = avg.getSumWords().toDouble / avg.getWordCount().toDouble
@@ -19,43 +22,41 @@ object AvgGamletWords extends App {
   result
 
 
-  def countsSumOfWordsParts(numberOfParts: Int) = {
+  def countsSumOfWordsParts(amountOfParts: Int) = {
+    val arrayPartsOfBook = new Array[Array[String]](amountOfParts)
+    val arrayThreads: Array[Thread] = new Array[Thread](amountOfParts)
+    @volatile var partBookForThread: Array[String] = new Array[String](arrayOnlyWordsFromTheBook.length / amountOfParts)
 
-    val arrayThreads: Array[Thread] = new Array[Thread](numberOfParts)
-    @volatile var partBookForThread: Array[String] = new Array[String](arrayOnlyWordsFromTheBook.length / numberOfParts)
+    for (numberPart <- 0 until amountOfParts) {
 
-    for (numberThreadWorkingWithPartText <- 0 until numberOfParts) {
-
-      if (numberThreadWorkingWithPartText != numberOfParts - 1) {
-        Array.copy(arrayOnlyWordsFromTheBook, numberThreadWorkingWithPartText * partBookForThread.length, partBookForThread, 0, partBookForThread.length)
+      if (numberPart != amountOfParts - 1) {
+        Array.copy(arrayOnlyWordsFromTheBook, numberPart * partBookForThread.length, partBookForThread, 0, partBookForThread.length)
       }
 
-      else if (arrayOnlyWordsFromTheBook.length % numberOfParts != 0) {
-        arrayThreads.dropRight(1).foreach(x => x.join())
-        partBookForThread = arrayOnlyWordsFromTheBook.drop(arrayOnlyWordsFromTheBook.length - partBookForThread.length - (arrayOnlyWordsFromTheBook.length % numberOfParts))
+      else if (arrayOnlyWordsFromTheBook.length % amountOfParts != 0) {
+        partBookForThread = arrayOnlyWordsFromTheBook.drop(arrayOnlyWordsFromTheBook.length - partBookForThread.length - (arrayOnlyWordsFromTheBook.length % amountOfParts))
       }
+
       else {
-        arrayThreads.dropRight(1).foreach(x => x.join())
-        Array.copy(arrayOnlyWordsFromTheBook, numberThreadWorkingWithPartText * partBookForThread.length, partBookForThread, 0, partBookForThread.length)
+        Array.copy(arrayOnlyWordsFromTheBook, numberPart * partBookForThread.length, partBookForThread, 0, partBookForThread.length)
       }
-
-      arrayThreads.update(
-        numberThreadWorkingWithPartText, new Thread(s"Thread # $numberThreadWorkingWithPartText") {
-
-          override def run(): Unit = {
-            semaphoreForControlTreatmentPartBook.acquire()
-            for (word <- partBookForThread) {
-              avg.sumWords(word.length)
-              avg.counterWord()
-            }
-            semaphoreForControlTreatmentPartBook.release()
-          }
-        }
-      )
-      arrayThreads(numberThreadWorkingWithPartText).start()
-      Thread.sleep(10)
+      arrayPartsOfBook.update(numberPart, partBookForThread.toArray)
     }
-    arrayThreads(arrayThreads.length - 1).join()
+
+    for (numberPartForThread <- arrayPartsOfBook.indices) {
+      arrayThreads.update(numberPartForThread, new ThreadWorkingWithPartOfBook(arrayPartsOfBook(numberPartForThread)))
+      arrayThreads(numberPartForThread).start()
+    }
+    arrayThreads.foreach(x => x.join())
+  }
+
+  class ThreadWorkingWithPartOfBook(partOfBook: Array[String]) extends Thread {
+    override def run(): Unit = {
+      for (word <- partOfBook) {
+        avg.sumWords(word.length)
+        avg.counterWord()
+      }
+    }
   }
 
   class AvgGamlet {
@@ -63,7 +64,9 @@ object AvgGamletWords extends App {
     @volatile private var sumWords: Int = 0
 
     def counterWord(): Unit = {
+      semaphoreForControlTreatmentPartBook.acquire()
       wordCount += 1
+      semaphoreForControlTreatmentPartBook.release()
     }
 
     def getWordCount(): Int = {
@@ -71,11 +74,14 @@ object AvgGamletWords extends App {
     }
 
     def sumWords(wordLength: Int): Unit = {
+      semaphoreForControlTreatmentPartBook.acquire()
       sumWords += wordLength
+      semaphoreForControlTreatmentPartBook.release()
     }
 
     def getSumWords(): Int = {
       sumWords
     }
   }
+
 }
