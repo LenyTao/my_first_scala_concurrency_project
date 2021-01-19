@@ -20,18 +20,16 @@ object AvgGamletWords extends App {
   println("Average length of English words: " + String.format("%.1f", result) + " letters")
   result
 
-
   def countsSumOfWordsParts(numberOfParts: Int): Unit = {
-    val arrayThreads: Array[Thread] = new Array[Thread](numberOfParts + math.ceil(arrayOnlyWordsFromTheBook.length % numberOfParts / (arrayOnlyWordsFromTheBook.length % numberOfParts + 1).toDouble).toInt)
     val partBookForThread = arrayOnlyWordsFromTheBook
       .sliding(arrayOnlyWordsFromTheBook.length / numberOfParts, arrayOnlyWordsFromTheBook.length / numberOfParts)
       .toList
-    partBookForThread.indices.foreach(x => arrayThreads.update(x, new ThreadWorkingWithWords(partBookForThread(x))))
-    arrayThreads.foreach(x => x.start())
-    arrayThreads.foreach(x => x.join())
+    val listThreads: List[Thread] = partBookForThread.map(x => new ThreadCalculateSumOfWords(x))
+    listThreads.foreach(x => x.start())
+    listThreads.foreach(x => x.join())
   }
 
-  class ThreadWorkingWithWords(partOfBook: Array[String]) extends Thread {
+  class ThreadCalculateSumOfWords(partOfBook: Array[String]) extends Thread {
     override def run(): Unit = {
       partOfBook.foreach(x => avg.countAndSumWords(x.length))
     }
