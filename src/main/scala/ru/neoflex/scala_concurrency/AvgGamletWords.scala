@@ -1,65 +1,65 @@
 package ru.neoflex.scala_concurrency
 
-import java.io.File
 import java.nio.file.{Files, Path}
 
+object AvgGamletWords extends App {
 
-  trait ReaderGamlet {
-    val file = Path.of("./textGamlet/Gamlet.txt")
+  val bookSacrifice: Path = Path.of("./textGamlet/Gamlet.txt")
+  val arrayOnlyWordsFromTheBook = Files
+    .readString(bookSacrifice)
+    .replaceAll("[^a-zA-Z\\s]", "")
+    .replaceAll("[\\r\\n\\a\\t\\v\\f\\e]", "")
+    .split(" ")
+    .filter(_ != "")
 
-    def readStrings(f: File): Array[String] = {
-      Files.readString(f.toPath).replaceAll("\\p{Punct}", "").replaceAll("\n", " ").split(" ")
+  val avg = new AvgGamlet
+  countsSumOfWordsParts(5)
+  val result: Double = avg.getSumWords().toDouble / avg.getWordCount().toDouble
+  println("Average length of English words: " + String.format("%.1f", result) + " letters")
+  result
+
+  def countsSumOfWordsParts(numberOfParts: Int): Unit = {
+    val partBookForThread = arrayOnlyWordsFromTheBook
+      .sliding(arrayOnlyWordsFromTheBook.length / numberOfParts, arrayOnlyWordsFromTheBook.length / numberOfParts)
+      .toList
+    val listThreads: List[Thread] = partBookForThread.map(x => new ThreadCalculateSumOfWords(x))
+    listThreads.foreach(x => x.start())
+    listThreads.foreach(x => x.join())
+  }
+
+  class ThreadCalculateSumOfWords(partOfBook: Array[String]) extends Thread {
+    val avgInsideClass = new AvgGamlet
+
+    override def run(): Unit = {
+      partOfBook.foreach(x => avgInsideClass.countAndSumWordsInsideThread(x.length))
+      avg.countAndSumWords(avgInsideClass.getSumWords(), avgInsideClass.getWordCount())
+    }
+  }
+
+  class AvgGamlet {
+    @volatile private var wordCount: Int = 0
+    @volatile private var sumWords: Int = 0
+
+    def getWordCount(): Int = {
+      wordCount
     }
 
-    def loadStrings(): Array[String] =
-      readStrings(file.toFile)
-  }
+    def getSumWords(): Int = {
+      sumWords
+    }
 
-  object AvgGamlet extends App with ReaderGamlet {
-    val firstHalfThread = new MyThread
-    val secondHalfThread = new MyThread2
-    firstHalfThread.start();
-    secondHalfThread.start();
-    firstHalfThread.join()
-    secondHalfThread.join()
-    val result = math.round(((firstHalfThread.avgFirstHalf + secondHalfThread.avgSecondHalf) / 2) * 100.0) / 100.0
-    println("Average length of English words " + result + " letters")
-    result
-  }
-
-  class MyThread extends Thread with ReaderGamlet {
-    var wordCount = 0
-    var sumWord = 0
-    var avgFirstHalf: Double = 0.0
-
-    override def run() = {
-      val firstHalf = loadStrings().dropRight(loadStrings().length / 2)
-      for (word <- firstHalf) {
-        if (word.nonEmpty && word(0).toInt != 13) {
-          println("Hello, I am First Thread, working with the word: " + word.trim)
-          wordCount += 1
-          sumWord = sumWord + word.length
-        }
+    def countAndSumWords(wordLength: Int, wordCounter: Int): Unit = {
+      synchronized {
+        wordCount += wordCounter
+        sumWords += wordLength
       }
-      avgFirstHalf = sumWord.toDouble / wordCount.toDouble
     }
+
+    def countAndSumWordsInsideThread(wordLength: Int): Unit = {
+      wordCount += 1
+      sumWords += wordLength
+    }
+
   }
 
-  class MyThread2 extends Thread with ReaderGamlet {
-    var wordCount = 0
-    var sumWord = 0
-    var avgSecondHalf: Double = 0.0
-
-    override def run() = {
-      val secondHalf = loadStrings().drop(loadStrings().length / 2)
-      for (word <- secondHalf) {
-        if (word.nonEmpty && word(0).toInt != 13) {
-          println("Hello, I am Second Thread, working with the word: " + word.trim)
-          wordCount += 1
-          sumWord = sumWord + word.length
-        }
-      }
-      avgSecondHalf = sumWord.toDouble / wordCount.toDouble
-    }
-  }
-
+}
