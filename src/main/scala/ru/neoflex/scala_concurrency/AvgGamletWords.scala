@@ -1,8 +1,6 @@
 package ru.neoflex.scala_concurrency
 
 import java.nio.file.{Files, Path}
-import java.util.concurrent.atomic.AtomicInteger
-
 
 object AvgGamletWords extends App {
 
@@ -30,27 +28,38 @@ object AvgGamletWords extends App {
   }
 
   class ThreadCalculateSumOfWords(partOfBook: Array[String]) extends Thread {
+    val avgInsideClass = new AvgGamlet
+
     override def run(): Unit = {
-      partOfBook.foreach(x => avg.countAndSumWords(x.length))
+      partOfBook.foreach(x => avgInsideClass.countAndSumWordsInsideThread(x.length))
+      avg.countAndSumWords(avgInsideClass.getSumWords(), avgInsideClass.getWordCount())
     }
   }
 
   class AvgGamlet {
-    private val sumWords: AtomicInteger = new AtomicInteger()
-    private val wordCount: AtomicInteger = new AtomicInteger()
+    @volatile private var wordCount: Int = 0
+    @volatile private var sumWords: Int = 0
 
     def getWordCount(): Int = {
-      wordCount.get()
+      wordCount
     }
 
     def getSumWords(): Int = {
-      sumWords.get()
+      sumWords
     }
 
-    def countAndSumWords(wordLength: Int): Unit = {
-      wordCount.addAndGet(1)
-      sumWords.addAndGet(wordLength)
+    def countAndSumWords(wordLength: Int, wordCounter: Int): Unit = {
+      synchronized {
+        wordCount += wordCounter
+        sumWords += wordLength
+      }
     }
+
+    def countAndSumWordsInsideThread(wordLength: Int): Unit = {
+      wordCount += 1
+      sumWords += wordLength
+    }
+
   }
 
 }
